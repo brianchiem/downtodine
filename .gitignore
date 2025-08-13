@@ -1,0 +1,47 @@
+# Node
+node_modules/
+**/node_modules/
+.npmrc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Expo / React Native
+.expo/
+.expo-shared/
+dist/
+build/
+web-build/
+.expo-dev-cache/
+
+# Metro / Cache
+.cache/
+.tmp/
+
+# Logs
+logs/
+*.log
+
+# Env files
+.env
+.env.*
+frontend/.env
+backend/.env
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Coverage
+coverage/
+
+# Misc
+*.local
+*.secret
