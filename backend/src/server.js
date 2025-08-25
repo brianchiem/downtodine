@@ -29,9 +29,11 @@ app.use('/api/auth', require('./routes/auth'));
 const availabilityRoutes = require('./routes/availability');
 const friendsRoutes = require('./routes/friends');
 const friendRequestsRoutes = require('./routes/friendRequests');
+const usersRoutes = require('./routes/users');
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/friend-requests', friendRequestsRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api/ping', require('./routes/ping'));
 
 // Start server after DB connect

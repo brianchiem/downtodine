@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { FriendsAPI, AvailabilityAPI, FriendRequestsAPI } from '../api/client';
+import { FriendsAPI, AvailabilityAPI, FriendRequestsAPI, UsersAPI } from '../api/client';
 
 export default function FriendsScreen() {
   const { token } = useContext(AuthContext);
@@ -17,6 +17,8 @@ export default function FriendsScreen() {
   const [reqsLoading, setReqsLoading] = useState(true);
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   const load = async () => {
     try {
@@ -28,6 +30,33 @@ export default function FriendsScreen() {
       setError(e.message || 'Failed to load friends');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helpers for suggestion actions
+  const sendRequestToUsername = async (uname) => {
+    try {
+      setAdding(true);
+      setError('');
+      await FriendRequestsAPI.send(token, uname);
+      await loadRequests();
+    } catch (e) {
+      setError(e.message || 'Failed to send request');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  // Accept request when suggestions show pendingIncoming
+  const acceptRequestFromUser = async (userId) => {
+    try {
+      // find matching incoming request id
+      const match = incoming.find((r) => r.from?.id === userId);
+      if (!match) return;
+      await FriendRequestsAPI.accept(token, match.id);
+      await Promise.all([loadRequests(), load()]);
+    } catch (e) {
+      setError(e.message || 'Failed to accept');
     }
   };
 
@@ -60,6 +89,31 @@ export default function FriendsScreen() {
     await load();
     setRefreshing(false);
   };
+
+  // Live search suggestions with debounce on username input
+  useEffect(() => {
+    let cancelled = false;
+    const q = username.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      return undefined;
+    }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await UsersAPI.search(token, q, 10);
+        if (!cancelled) setSuggestions(res.users || []);
+      } catch (e) {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [username, token]);
 
   const loadRequests = async () => {
     try {
@@ -191,6 +245,37 @@ export default function FriendsScreen() {
               <Text style={styles.addText}>{adding ? 'Sending…' : 'Send'}</Text>
             </TouchableOpacity>
           </View>
+          {username.trim().length >= 2 && (
+            <View style={styles.suggestBox}>
+              {searching ? (
+                <ActivityIndicator />
+              ) : suggestions.length === 0 ? (
+                <Text style={styles.subtitle}>No users found</Text>
+              ) : (
+                suggestions.map((u) => (
+                  <View key={u.id} style={styles.suggestItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.friendName}>{u.username}</Text>
+                      <Text style={styles.friendEmail}>{u.email}</Text>
+                    </View>
+                    {u.alreadyFriend ? (
+                      <Text style={styles.pendingText}>Friend</Text>
+                    ) : u.pendingIncoming ? (
+                      <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptRequestFromUser(u.id)}>
+                        <Text style={styles.acceptText}>Accept</Text>
+                      </TouchableOpacity>
+                    ) : u.pendingOutgoing ? (
+                      <Text style={styles.pendingText}>Pending</Text>
+                    ) : (
+                      <TouchableOpacity style={styles.addBtn} onPress={() => sendRequestToUsername(u.username)}>
+                        <Text style={styles.addText}>Send</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))
+              )}
+            </View>
+          )}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Requests</Text>
             {reqsLoading ? (
@@ -260,6 +345,8 @@ const styles = StyleSheet.create({
   addBtn: { marginLeft: 8, backgroundColor: '#0a84ff', paddingHorizontal: 14, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   addText: { color: 'white', fontWeight: '600' },
   btnDisabled: { opacity: 0.6 },
+  suggestBox: { alignSelf: 'stretch', paddingHorizontal: 16, marginBottom: 8 },
+  suggestItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#eee' },
   count: { alignSelf: 'flex-start', paddingHorizontal: 16, color: '#666', marginBottom: 8 },
   friendBlock: { borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#e0e0e0' },
   friendItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },

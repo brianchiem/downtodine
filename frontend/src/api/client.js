@@ -44,3 +44,10 @@ export const FriendRequestsAPI = {
   accept: (token, requestId) => jsonFetch(`/api/friend-requests/${requestId}/accept`, { method: 'POST', token }),
   decline: (token, requestId) => jsonFetch(`/api/friend-requests/${requestId}/decline`, { method: 'POST', token }),
 };
+
+export const UsersAPI = {
+  search: (token, q, limit = 10) => {
+    const qp = new URLSearchParams({ q, limit: String(limit) }).toString();
+    return jsonFetch(`/api/users/search?${qp}`, { method: 'GET', token });
+  },
+};
