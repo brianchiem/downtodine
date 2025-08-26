@@ -51,3 +51,11 @@ export const UsersAPI = {
     return jsonFetch(`/api/users/search?${qp}`, { method: 'GET', token });
   },
 };
+
+export const GroupsAPI = {
+  list: (token) => jsonFetch('/api/groups', { method: 'GET', token }),
+  create: (token, name) => jsonFetch('/api/groups', { method: 'POST', token, body: { name } }),
+  detail: (token, id) => jsonFetch(`/api/groups/${id}`, { method: 'GET', token }),
+  join: (token, id) => jsonFetch(`/api/groups/${id}/join`, { method: 'POST', token }),
+  leave: (token, id) => jsonFetch(`/api/groups/${id}/leave`, { method: 'POST', token }),
+};
